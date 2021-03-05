@@ -1,43 +1,39 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse, parse_qs
-import time
+from flask import Flask, request
+
 import logging
-import json
+import simplejson as json
 
-hostName = "localhost"
-serverPort = 8080
+robots = [
+    {"name": "Bahamut", "id": 1},
+    {"name": "Shiva", "id": 2},
+    {"name": "Ifrit", "id": 3}]
 
-class ColladaServer (BaseHTTPRequestHandler):
-    def _set_response(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
+app = Flask(__name__)
 
-    def do_GET(self):
-        logging.info("GET request,\nPath: %s\nHeaders:\n%s\n", str(self.path), str(self.headers))
-        query_components = urlparse(self.path).path
-        self._set_response()
-        self.wfile.write(json.dumps(query_components, indent = 4).encode("utf-8"))
-        #self.wfile.write("GET request for {}".format(self.path).encode("utf-8"))
+@app.route("/")
+def hello():
+    return "Collada Server is running!"
 
-    def do_POST(self):
-        content_length = int(self.headers["Content-Length"]) # <--- Gets the size of data
-        post_data = self.rfile.read(content_length) # <--- Gets the data itself
-        logging.info("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
-                str(self.path), str(self.headers), post_data.decode("utf-8"))
+@app.route("/robots", methods=("GET", "POST"))
+def robotsBase():
+    if request.method == "GET":
+        return json.dumps(robots)
 
-        self._set_response()
-        self.wfile.write("POST request for {}".format(self.path).encode("utf-8"))
+    if request.method == "POST":
+        name = request.args.get("name")
+        size = len(robots)
+        robot = {"name": name, "id": size + 1}
+        robots.append(robot)
+        return json.dumps(robot)
+
+@app.route("/robots/<int:id>", methods=("GET", "PUT", "DELETE"))
+def robotsWithID(id):
+    if request.method == "GET":
+        for robot in robots:
+            if robot["id"] == id:
+                return robot
+        return ""
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    webServer = HTTPServer((hostName, serverPort), ColladaServer)
-    logging.info("Server started http://%s:%s" % (hostName, serverPort))
-
-    try:
-        webServer.serve_forever()
-    except KeyboardInterrupt:
-        pass
-
-    webServer.server_close()
-    logging.info("Server stopped.")
+    app.run(debug=True)
