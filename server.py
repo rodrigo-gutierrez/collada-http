@@ -4,6 +4,7 @@ from os import listdir, remove
 from os.path import dirname, isfile, join, splitext
 
 import logging
+import uuid
 import simplejson as json
 
 robots = []
@@ -14,7 +15,7 @@ def generateRobots():
     for f in listdir(dataPath):
         if isfile(join(dataPath, f)):
             res = json.loads(open(join(dataPath, f), "r").read())
-            res["id"] = int(splitext(f)[0])
+            res["id"] = splitext(f)[0]
             res["filename"] = f
             robots.append(res)
 
@@ -31,14 +32,14 @@ def robotsBase():
 
     if request.method == "POST":
         name = request.args.get("name")
-        size = len(robots)
-        robot = {"name": name, "id": size + 1, "filename": str(size + 1) + ".robot"}
+        id = str(uuid.uuid4())[0:8]
+        robot = {"name": name, "id": id, "filename": id + ".robot"}
         with open(join(dataPath, robot["filename"]), "w") as file:
             file.write("{ \"name\": \"" + name + "\" }")
         robots.append(robot)
         return robot
 
-@app.route("/robots/<int:id>", methods=("GET", "PUT", "DELETE"))
+@app.route("/robots/<id>", methods=("GET", "PUT", "DELETE"))
 def robotsWithID(id):
     if request.method == "GET":
         for robot in robots:
