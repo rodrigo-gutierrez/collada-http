@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, abort
 
-from os import listdir
+from os import listdir, remove
 from os.path import dirname, isfile, join, splitext
 
 import logging
@@ -32,7 +32,9 @@ def robotsBase():
     if request.method == "POST":
         name = request.args.get("name")
         size = len(robots)
-        robot = {"name": name, "id": size + 1}
+        robot = {"name": name, "id": size + 1, "filename": str(size + 1) + ".robot"}
+        with open(join(dataPath, robot["filename"]), "w") as file:
+            file.write("{ \"name\": \"" + name + "\" }")
         robots.append(robot)
         return robot
 
@@ -55,6 +57,14 @@ def robotsWithID(id):
                     file.write(data)
                 robot["name"] = name
                 return robot
+        abort(404)
+
+    if request.method == "DELETE":
+        for robot in list(robots):
+            if robot["id"] == id:
+                remove(join(dataPath, robot["filename"]))
+                robots.remove(robot)
+                return ("", 204)
         abort(404)
 
 if __name__ == "__main__":
