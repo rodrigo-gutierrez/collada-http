@@ -7,14 +7,15 @@ import logging
 import simplejson as json
 
 robots = []
+relPath = dirname(__file__)
+dataPath = join(relPath, "instance")
 
 def generateRobots():
-    relPath = dirname(__file__)
-    mypath = join(relPath, "instance")
-    for f in listdir(mypath):
-        if isfile(join(mypath, f)):
-            res = json.loads(open(join(mypath, f), "r").read())
+    for f in listdir(dataPath):
+        if isfile(join(dataPath, f)):
+            res = json.loads(open(join(dataPath, f), "r").read())
             res["id"] = int(splitext(f)[0])
+            res["filename"] = f
             robots.append(res)
 
 app = Flask(__name__)
@@ -40,6 +41,19 @@ def robotsWithID(id):
     if request.method == "GET":
         for robot in robots:
             if robot["id"] == id:
+                return robot
+        abort(404)
+
+    if request.method == "PUT":
+        name = request.args.get("name")
+        for robot in robots:
+            if robot["id"] == id:
+                with open(join(dataPath, robot["filename"]), "r") as file:
+                    data = file.read()
+                data = data.replace(robot["name"], name)
+                with open(join(dataPath, robot["filename"]), "w") as file:
+                    file.write(data)
+                robot["name"] = name
                 return robot
         abort(404)
 
