@@ -10,6 +10,8 @@ Python 3.5+
 
 ## Setup
 
+It is strongly recommended to use a Python virtual environment. After setting it up:
+
 ```sh
 pip install -r requirements.txt
 ```
