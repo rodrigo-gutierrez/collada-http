@@ -13,13 +13,13 @@ Python 3.5+
 It is strongly recommended to use a Python virtual environment. After setting it up:
 
 ```sh
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Usage
 
 ```sh
-python server.py
+python3 server.py
 ```
 
 The server will start on port 5000.  
