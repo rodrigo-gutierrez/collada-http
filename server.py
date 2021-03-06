@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, abort
 
-from os import listdir, remove
-from os.path import dirname, isfile, join, splitext
+from os import listdir, makedirs, remove
+from os.path import dirname, exists, isfile, join, splitext
 
 import logging
 import uuid
@@ -12,6 +12,9 @@ relPath = dirname(__file__)
 dataPath = join(relPath, "instance")
 
 def generateRobots():
+    if not exists(dataPath):
+        makedirs(dataPath)
+
     for f in listdir(dataPath):
         if isfile(join(dataPath, f)):
             res = json.loads(open(join(dataPath, f), "r").read())
