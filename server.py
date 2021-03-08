@@ -21,6 +21,14 @@ def generateRobots():
             res["id"] = splitext(f)[0]
             res["filename"] = f
             robots.append(res)
+            # TO-DO:
+            #
+            # OpenRAVE needs to be invoked to parse all Collada files in the data directory.
+            # Using openravepy Environment and  classes, extract meta-data from each file to generate
+            #   'robots' object array.
+            #
+            # At this point, meta-data needs to be reconstructed every time server starts up.
+            # Future implementation would serialize meta-data into a cache, and load it on start-up.
 
 app = Flask(__name__)
 
@@ -32,6 +40,7 @@ def hello():
 def robotsBase():
     if request.method == "GET":
         return jsonify(robots)
+        # It is enough to respond with only meta-data. No OpenRAVE operations required.
 
     if request.method == "POST":
         name = request.args.get("name")
@@ -41,6 +50,9 @@ def robotsBase():
             file.write("{ \"name\": \"" + name + "\" }")
         robots.append(robot)
         return robot
+        # TO-DO:
+        #
+        #
 
 @app.route("/robots/<id>", methods=("GET", "PUT", "DELETE"))
 def robotsWithID(id):
@@ -49,6 +61,9 @@ def robotsWithID(id):
             if robot["id"] == id:
                 return robot
         abort(404)
+        # TO-DO:
+        #
+        #
 
     if request.method == "PUT":
         name = request.args.get("name")
@@ -62,6 +77,9 @@ def robotsWithID(id):
                 robot["name"] = name
                 return robot
         abort(404)
+        # TO-DO:
+        #
+        #
 
     if request.method == "DELETE":
         for robot in list(robots):
@@ -70,6 +88,7 @@ def robotsWithID(id):
                 robots.remove(robot)
                 return ("", 204)
         abort(404)
+        # It is enough to simply delete Collada file and update meta-data. No OpenRAVE operations required.
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
