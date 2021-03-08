@@ -40,7 +40,10 @@ def hello():
 def colladasBase():
     if request.method == "GET":
         return jsonify(colladas)
-        # It is enough to respond with only meta-data. No OpenRAVE operations required.
+        # TO-DO:
+        #
+        # It is enough to respond with only meta-data.
+        # No OpenRAVE operations required.
 
     if request.method == "POST":
         name = request.args.get("name")
@@ -52,7 +55,12 @@ def colladasBase():
         return collada
         # TO-DO:
         #
-        
+        # Assuming the user wants to upload a Collada file,
+        #   it is enough to parse the request body and save as a Collada file.
+        # No OpenRAVE operations required.
+        #
+        # Future implementation would validate the provided XML with OpenRave,
+        #   and reject if invalid.
 
 @app.route("/colladas/<id>", methods=("GET", "PUT", "DELETE"))
 def colladaWithID(id):
@@ -61,7 +69,11 @@ def colladaWithID(id):
             if collada["id"] == id:
                 return collada
         abort(404)
-        # Assuming 
+        # TO-DO:
+        #
+        # Assuming the user wants to download the Collada file,
+        #   it is enough to respond with the Collada file as text.
+        # No OpenRAVE operations required.
 
     if request.method == "PUT":
         name = request.args.get("name")
@@ -91,7 +103,10 @@ def colladaWithID(id):
                 colladas.remove(collada)
                 return ("", 204)
         abort(404)
-        # It is enough to delete Collada file and update meta-data. No OpenRAVE operations required.
+        # TO-DO:
+        #
+        # It is enough to delete Collada file and update meta-data.
+        # No OpenRAVE operations required.
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
