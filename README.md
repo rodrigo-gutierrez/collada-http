@@ -25,13 +25,13 @@ python3 server.py
 The server will start on port 5000.  
 Requests can be made to the following endpoints:  
 
-localhost:5000/robots  
+localhost:5000/colladas  
 Methods supported:  
-GET  - get meta-data for all robots, in JSON format  
-POST - create new robot from parameters  
+GET  - get meta-data for all collada files, in JSON format  
+POST - create new collada file from parameters  
 
-localhost:5000/robots/<robotId>  
+localhost:5000/colladas/<colladaId>  
 Methods supported:  
-GET    - get meta-data for robotId specified  
-PUT	   - update robot with robotId specified via query parameters  
-DELETE - remove robot with robotId specified  
+GET    - get meta-data for colladaId specified  
+PUT	   - update collada file with colladaId specified via query parameters  
+DELETE - remove collada file with colladaId specified  
