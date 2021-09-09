@@ -21,8 +21,6 @@ def generateTargets():
     for f in listdir(dataPath):
         if isfile(join(dataPath, f)):
             res = json.loads(open(join(dataPath, f), "r").read())
-            res["id"] = splitext(f)[0]
-            res["filename"] = f
             targets.append(res)
             # TO-DO:
             #
@@ -44,11 +42,15 @@ def targetsBase():
         # It is enough to respond with only meta-data.
 
     if request.method == "POST":
+        ip = request.args.get("ip")
+        model = request.args.get("model")
         name = request.args.get("name")
+
         id = str(uuid.uuid4())[0:8]
-        target = {"name": name, "id": id, "filename": id + ".json"}
-        with open(join(dataPath, target["filename"]), "w") as file:
-            file.write("{ \"name\": \"" + name + "\" }")
+        filename = id + ".json"
+        target = { "id": id, "ip": ip, "model": model, "name": name }
+        with open(join(dataPath, filename), "w") as file:
+            json.dump(target, file)
         targets.append(target)
         return target
         # TO-DO:
@@ -75,10 +77,11 @@ def targetByID(id):
         name = request.args.get("name")
         for target in targets:
             if target["id"] == id:
-                with open(join(dataPath, target["filename"]), "r") as file:
+                filename = id + ".json"
+                with open(join(dataPath, filename), "r") as file:
                     data = file.read()
                 data = data.replace(target["name"], name)
-                with open(join(dataPath, target["filename"]), "w") as file:
+                with open(join(dataPath, filename), "w") as file:
                     file.write(data)
                 target["name"] = name
                 return target
@@ -141,7 +144,7 @@ def targetReservationByID(id):
 if __name__ == "__main__":
     logging.basicConfig(level = logging.INFO)
     generateTargets()
-    reservations = pickledb.load(join(dataPath, "reservations.db"), False)
+    reservations = pickledb.load(join(dataPath, "db", "reservations.db"), False)
     #reservations.set("559051d3", str(int(time.time()) + 600))
     #reservations.dump()
     app.run(debug = True)
