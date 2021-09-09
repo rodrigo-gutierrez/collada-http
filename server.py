@@ -74,16 +74,16 @@ def targetByID(id):
         #   it is enough to respond with the target file as text.
 
     if request.method == "PUT":
-        name = request.args.get("name")
+        ip = request.args.get("ip")
         for target in targets:
             if target["id"] == id:
                 filename = id + ".json"
                 with open(join(dataPath, filename), "r") as file:
                     data = file.read()
-                data = data.replace(target["name"], name)
+                data = data.replace(target["ip"], ip)
                 with open(join(dataPath, filename), "w") as file:
                     file.write(data)
-                target["name"] = name
+                target["ip"] = ip
                 return target
         abort(404)
         # TO-DO:
