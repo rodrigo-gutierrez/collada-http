@@ -6,12 +6,15 @@ from os.path import dirname, exists, isfile, join, splitext
 import logging
 import uuid
 import simplejson as json
+import pickledb
+import time
 
-colladas = []
+targets = []
 relPath = dirname(__file__)
 dataPath = join(relPath, "instance")
+reservations = None
 
-def generateColladas():
+def generateTargets():
     if not exists(dataPath):
         makedirs(dataPath)
 
@@ -20,12 +23,8 @@ def generateColladas():
             res = json.loads(open(join(dataPath, f), "r").read())
             res["id"] = splitext(f)[0]
             res["filename"] = f
-            colladas.append(res)
+            targets.append(res)
             # TO-DO:
-            #
-            # OpenRAVE needs to be invoked to parse all Collada files in the data directory.
-            # Using openravepy Environment and  classes, extract meta-data from each file to generate
-            #   'colladas' object array.
             #
             # At this point, meta-data needs to be reconstructed every time server starts up.
             # Future implementation would serialize meta-data into a cache, and load it on start-up.
@@ -34,81 +33,115 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    return "Collada Server is running!"
+    return "Reservation Server is running!"
 
-@app.route("/colladas", methods=("GET", "POST"))
-def colladasBase():
+@app.route("/targets", methods=("GET", "POST"))
+def targetsBase():
     if request.method == "GET":
-        return jsonify(colladas)
+        return jsonify(targets)
         # TO-DO:
         #
         # It is enough to respond with only meta-data.
-        # No OpenRAVE operations required.
 
     if request.method == "POST":
         name = request.args.get("name")
         id = str(uuid.uuid4())[0:8]
-        collada = {"name": name, "id": id, "filename": id + ".dae"}
-        with open(join(dataPath, collada["filename"]), "w") as file:
+        target = {"name": name, "id": id, "filename": id + ".json"}
+        with open(join(dataPath, target["filename"]), "w") as file:
             file.write("{ \"name\": \"" + name + "\" }")
-        colladas.append(collada)
-        return collada
+        targets.append(target)
+        return target
         # TO-DO:
         #
-        # Assuming the user wants to upload a Collada file,
-        #   it is enough to parse the request body and save as a Collada file.
-        # No OpenRAVE operations required.
+        # Assuming the user wants to upload target file,
+        #   it is enough to parse the request body and save as a target file.
         #
-        # Future implementation would validate the provided XML with OpenRave,
+        # Future implementation would validate the provided XML,
         #   and reject if invalid.
 
-@app.route("/colladas/<id>", methods=("GET", "PUT", "DELETE"))
-def colladaWithID(id):
+@app.route("/targets/<id>", methods=("GET", "PUT", "DELETE"))
+def targetByID(id):
     if request.method == "GET":
-        for collada in colladas:
-            if collada["id"] == id:
-                return collada
+        for target in targets:
+            if target["id"] == id:
+                return target
         abort(404)
         # TO-DO:
         #
-        # Assuming the user wants to download the Collada file,
-        #   it is enough to respond with the Collada file as text.
-        # No OpenRAVE operations required.
+        # Assuming the user wants to download the target file,
+        #   it is enough to respond with the target file as text.
 
     if request.method == "PUT":
         name = request.args.get("name")
-        for collada in colladas:
-            if collada["id"] == id:
-                with open(join(dataPath, collada["filename"]), "r") as file:
+        for target in targets:
+            if target["id"] == id:
+                with open(join(dataPath, target["filename"]), "r") as file:
                     data = file.read()
-                data = data.replace(collada["name"], name)
-                with open(join(dataPath, collada["filename"]), "w") as file:
+                data = data.replace(target["name"], name)
+                with open(join(dataPath, target["filename"]), "w") as file:
                     file.write(data)
-                collada["name"] = name
-                return collada
+                target["name"] = name
+                return target
         abort(404)
         # TO-DO:
         #
-        # import openravepy
-        # env = openravepy.Environment()
-        # searching meta-data same as above, set pathToColladaFile to collada["filename"] of correct file
-        # env.Load(pathToColladaFile)
-        # modify loaded object according to query parameters provided
-        # env.Save(pathToColladaFile)
+        # Expand function to modify other fields.
 
     if request.method == "DELETE":
-        for collada in list(colladas):
-            if collada["id"] == id:
-                remove(join(dataPath, collada["filename"]))
-                colladas.remove(collada)
-                return ("", 204)
+        for target in list(targets):
+            if target["id"] == id:
+                remove(join(dataPath, target["filename"]))
+                targets.remove(target)
+                return ("Deleted", 200)
         abort(404)
         # TO-DO:
         #
-        # It is enough to delete Collada file and update meta-data.
-        # No OpenRAVE operations required.
+        # It is enough to delete target file and update meta-data.
+    
+@app.route("/targets/<id>/reservation", methods=("GET", "POST", "DELETE"))
+def targetReservationByID(id):
+        if request.method == "GET":
+            for target in targets:
+                if target["id"] == id:
+                    reservation = reservations.get(id)
+                    if reservation:
+                        return reservation
+                    else:
+                        return ("", 204)
+            abort(404)
+        
+        if request.method == "POST":
+            for target in targets:
+                if target["id"] == id:
+                    reservation = reservations.get(id)
+                    if reservation:
+                        now = int(time.time())
+                        available = int(reservation) < now
+                        if available:
+                            duration = int(request.args.get("duration"))
+                            reservations.set(id, str(now + duration))
+                            return ("Set", 201)
+                        else:
+                            return ("Failed: " + reservation, 200)
+                    else:
+                        return ("", 204)
+            abort(404)
+            
+        if request.method == "DELETE":
+            for target in targets:
+                if target["id"] == id:
+                    reservation = reservations.get(id)
+                    if reservation:
+                        reservations.rem(id)
+                        return ("Deleted", 200)
+                    else:
+                        return ("", 204)
+            abort(404)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    generateColladas()
-    app.run(debug=True)
+    logging.basicConfig(level = logging.INFO)
+    generateTargets()
+    reservations = pickledb.load(join(dataPath, "reservations.db"), False)
+    #reservations.set("559051d3", str(int(time.time()) + 600))
+    #reservations.dump()
+    app.run(debug = True)
