@@ -108,7 +108,12 @@ def targetReservationByID(id):
                 if target["id"] == id:
                     reservation = reservations.get(id)
                     if reservation:
-                        return reservation
+                        now = int(time.time())
+                        available = int(reservation) < now
+                        if available:
+                            return ("", 204)
+                        else:
+                            return reservation
                     else:
                         return ("", 204)
             abort(404)
@@ -117,17 +122,19 @@ def targetReservationByID(id):
             for target in targets:
                 if target["id"] == id:
                     reservation = reservations.get(id)
+                    now = int(time.time())
                     if reservation:
-                        now = int(time.time())
                         available = int(reservation) < now
                         if available:
                             duration = int(request.args.get("duration"))
                             reservations.set(id, str(now + duration))
-                            return ("Set", 201)
+                            return (reservations.get(id), 201)
                         else:
-                            return ("Failed: " + reservation, 200)
+                            return reservation
                     else:
-                        return ("", 204)
+                        duration = int(request.args.get("duration"))
+                        reservations.set(id, str(now + duration))
+                        return (reservations.get(id), 201)
             abort(404)
             
         if request.method == "DELETE":
