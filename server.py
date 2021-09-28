@@ -14,6 +14,7 @@ relPath = dirname(__file__)
 dataPath = join(relPath, "instance")
 reservations = None
 
+
 def generateTargets():
     if not exists(dataPath):
         makedirs(dataPath)
@@ -27,11 +28,14 @@ def generateTargets():
             # At this point, meta-data needs to be reconstructed every time server starts up.
             # Future implementation would serialize meta-data into a cache, and load it on start-up.
 
+
 app = Flask(__name__)
+
 
 @app.route("/")
 def hello():
     return "Reservation Server is running!"
+
 
 @app.route("/targets", methods=("GET", "POST"))
 def targetsBase():
@@ -48,7 +52,7 @@ def targetsBase():
 
         id = str(uuid.uuid4())[0:8]
         filename = id + ".json"
-        target = { "id": id, "ip": ip, "model": model, "name": name }
+        target = {"id": id, "ip": ip, "model": model, "name": name}
         with open(join(dataPath, filename), "w") as file:
             json.dump(target, file)
         targets.append(target)
@@ -60,6 +64,7 @@ def targetsBase():
         #
         # Future implementation would validate the provided XML,
         #   and reject if invalid.
+
 
 @app.route("/targets/<id>", methods=("GET", "PUT", "DELETE"))
 def targetByID(id):
@@ -100,43 +105,41 @@ def targetByID(id):
         # TO-DO:
         #
         # It is enough to delete target file and update meta-data.
-    
-@app.route("/targets/<id>/reservation", methods=("GET", "POST", "DELETE"))
-def targetReservationByID(id):
+
+
+@app.route("/targets/<id>/reservations", methods=("GET", "POST", "DELETE"))
+def targetReservationsByID(id):
         if request.method == "GET":
             for target in targets:
                 if target["id"] == id:
-                    reservation = reservations.get(id)
-                    if reservation:
-                        now = int(time.time())
-                        available = int(reservation) < now
-                        if available:
-                            return ("", 204)
-                        else:
-                            return reservation
+                    data = reservations.lgetall(id)
+                    if data:
+                        return json.dumps(data)
                     else:
                         return ("", 204)
             abort(404)
-        
+
         if request.method == "POST":
+            start = int(request.args.get("start"))
+            end = int(request.args.get("end"))
             for target in targets:
                 if target["id"] == id:
-                    reservation = reservations.get(id)
-                    now = int(time.time())
-                    if reservation:
-                        available = int(reservation) < now
+                    data = reservations.lgetall(id)
+                    if data:
+                        length = reservations.llen(id)
+                        available = False
+
                         if available:
-                            duration = int(request.args.get("duration"))
-                            reservations.set(id, str(now + duration))
-                            return (reservations.get(id), 201)
+                            item = reservations.ladd(id, (start, end))
+                            return (json.dumps(item), 201)
                         else:
-                            return reservation
+                            return (json.dumps(data[length - 1]), 409)
                     else:
-                        duration = int(request.args.get("duration"))
-                        reservations.set(id, str(now + duration))
-                        return (reservations.get(id), 201)
+                        reservations.lcreate(id)
+                        item = reservations.ladd(id, (start, end))
+                        return (json.dumps(item), 201)
             abort(404)
-            
+
         if request.method == "DELETE":
             for target in targets:
                 if target["id"] == id:
@@ -148,10 +151,12 @@ def targetReservationByID(id):
                         return ("", 204)
             abort(404)
 
+
 if __name__ == "__main__":
-    logging.basicConfig(level = logging.INFO)
+    logging.basicConfig(level= logging.INFO)
     generateTargets()
-    reservations = pickledb.load(join(dataPath, "db", "reservations.db"), False)
+    reservations = pickledb.load(
+        join(dataPath, "db", "reservations.db"), False)
     #reservations.set("559051d3", str(int(time.time()) + 600))
     #reservations.dump()
-    app.run(debug = True)
+    app.run(debug= True)
