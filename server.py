@@ -12,7 +12,11 @@ import time
 targets = []
 relPath = dirname(__file__)
 dataPath = join(relPath, "instance")
-reservations = None
+reservations = []
+
+class Target():
+    info = {}
+    reservations = []
 
 
 def generateTargets():
@@ -21,8 +25,10 @@ def generateTargets():
 
     for f in listdir(dataPath):
         if isfile(join(dataPath, f)):
-            res = json.loads(open(join(dataPath, f), "r").read())
-            targets.append(res)
+            target = Target()
+            target.info = json.loads(open(join(dataPath, f), "r").read())
+            target.reservations = []
+            targets.append(target)
             # TO-DO:
             #
             # At this point, meta-data needs to be reconstructed every time server starts up.
@@ -40,7 +46,7 @@ def hello():
 @app.route("/targets", methods=("GET", "POST"))
 def targetsBase():
     if request.method == "GET":
-        return jsonify(targets)
+        return jsonify(list(map(lambda x: x.info, targets)))
         # TO-DO:
         #
         # It is enough to respond with only meta-data.
@@ -111,32 +117,36 @@ def targetByID(id):
 def targetReservationsByID(id):
         if request.method == "GET":
             for target in targets:
-                if target["id"] == id:
-                    data = reservations.lgetall(id)
+                if target.info["id"] == id:
+                    #data = reservations.lgetall(id)
+                    data = target.reservations
                     if data:
-                        return json.dumps(data)
+                        available = data[-1][1] < int(time.time())
+                        if available:
+                            return ("", 204)
+                        return json.dumps(data[-1])
                     else:
                         return ("", 204)
             abort(404)
 
         if request.method == "POST":
-            start = int(request.args.get("start"))
+            #start = int(request.args.get("start"))
             end = int(request.args.get("end"))
+            user = request.args.get("user")
+            print(user)
             for target in targets:
-                if target["id"] == id:
-                    data = reservations.lgetall(id)
+                if target.info["id"] == id:
+                    data = target.reservations
                     if data:
-                        length = reservations.llen(id)
-                        available = False
+                        available = data[-1][1] < int(time.time())
 
                         if available:
-                            item = reservations.ladd(id, (start, end))
+                            item = target.reservations.append((1, end, user))
                             return (json.dumps(item), 201)
                         else:
-                            return (json.dumps(data[length - 1]), 409)
+                            return (json.dumps(data[-1]), 409)
                     else:
-                        reservations.lcreate(id)
-                        item = reservations.ladd(id, (start, end))
+                        item = target.reservations.append((1, end, user))
                         return (json.dumps(item), 201)
             abort(404)
 
